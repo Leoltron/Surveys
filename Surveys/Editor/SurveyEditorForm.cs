@@ -34,7 +34,7 @@ namespace Surveys.Editor
 
             Icon = new Icon("icon.ico");
             Text = @"Редактор опросов";
-            MinimumSize = new Size(500, 400);
+            MinimumSize = new Size(700, 400);
 
             tabControl = new TabControl {Location = new Point(0, 2)};
 

@@ -18,6 +18,7 @@ namespace Surveys.Editor
 
         public SurveyBuilder(Survey survey)
         {
+            PersonalDataPoints = new BindingList<string>(survey.PersonalDataPoints.ToList());
             Categories = new BindingList<string>(survey.Categories.ToList());
             Questions = new BindingList<QuestionBuilder>();
             foreach (var surveyQuestion in survey.Questions)

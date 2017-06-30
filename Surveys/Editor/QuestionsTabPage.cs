@@ -14,6 +14,8 @@ namespace Surveys.Editor
         private Button addQuestionButton;
         private Button removeQuestionButton;
         private Button cloneQuestionButton;
+        private Button moveQuestionUpButton;
+        private Button moveQuestionDownButton;
 
         private GroupBox groupBox;
 
@@ -33,7 +35,7 @@ namespace Surveys.Editor
         private Label categoryLabel;
         private ComboBox categoryComboBox;
 
-        private ListBox questionsListbox;
+        private ListBox questionsListBox;
 
         private int newQuestionsAdded = 0;
         private int newAnswersAdded = 0;
@@ -49,9 +51,13 @@ namespace Surveys.Editor
             Text = @"Вопросы";
 
             InitControls();
+            SetEventHandlers();
+        }
 
-            questionsListbox.DataSource = builder.Questions;
-            questionsListbox.SelectedIndexChanged += (sender, args) => UpdateQuestionControls();
+        private void SetEventHandlers()
+        {
+            questionsListBox.DataSource = builder.Questions;
+            questionsListBox.SelectedIndexChanged += (sender, args) => UpdateQuestionControls();
 
             addQuestionButton.Click += (sender, args) =>
             {
@@ -63,7 +69,7 @@ namespace Surveys.Editor
             removeQuestionButton.Click += (sender, args) =>
             {
                 if (IsValidQuestionSelected)
-                    builder.Questions.RemoveAt(questionsListbox.SelectedIndex);
+                    builder.Questions.RemoveAt(questionsListBox.SelectedIndex);
             };
 
             cloneQuestionButton.Click += (sender, args) =>
@@ -72,9 +78,14 @@ namespace Surveys.Editor
                     builder.Questions.Add(SelectedQuestion.Clone());
             };
 
+            moveQuestionUpButton.Click += (sender, args) => MoveSelectedQuestionUp();
+            moveQuestionDownButton.Click += (sender, args) => MoveSelectedQuestionDown();
+
             questionTextBox.TextChanged += OnQuestionTextBoxChanged;
 
             categoryComboBox.DataSource = builder.Categories;
+            typeof(ComboBox).GetMethod("RefreshItems", BindingFlags.NonPublic | BindingFlags.Instance)
+                .Invoke(categoryComboBox, new object[] { });
             categoryComboBox.SelectedIndexChanged += OnCategoryComboBoxChanged;
 
             answersListBox.SelectedIndexChanged += (sender, args) => UpdateAnswerControls();
@@ -122,6 +133,12 @@ namespace Surveys.Editor
             cloneQuestionButton = new Button {Text = @"Скопировать вопрос"};
             Controls.Add(cloneQuestionButton);
 
+            moveQuestionUpButton = new Button {Text = @"Сдвинуть вверх"};
+            Controls.Add(moveQuestionUpButton);
+
+            moveQuestionDownButton = new Button {Text = @"Сдвинуть вниз"};
+            Controls.Add(moveQuestionDownButton);
+
             groupBox = new GroupBox {Text = @"Ответы"};
             Controls.Add(groupBox);
 
@@ -151,8 +168,8 @@ namespace Surveys.Editor
             removeAnswerButton = new Button {Text = @"Удалить"};
             groupBox.Controls.Add(removeAnswerButton);
 
-            questionsListbox = new ListBox {Location = new Point(addQuestionButton.Left, addQuestionButton.Bottom + 5)};
-            Controls.Add(questionsListbox);
+            questionsListBox = new ListBox {Location = new Point(addQuestionButton.Left, addQuestionButton.Bottom + 5)};
+            Controls.Add(questionsListBox);
 
             questionTextLabel = new Label {Text = @"Текст вопроса:"};
             Controls.Add(questionTextLabel);
@@ -166,14 +183,14 @@ namespace Surveys.Editor
             Controls.Add(categoryComboBox);
         }
 
-        private bool IsValidQuestionSelected => questionsListbox.SelectedIndex >= 0 &&
-                                                questionsListbox.SelectedIndex < builder.Questions.Count;
+        private bool IsValidQuestionSelected => questionsListBox.SelectedIndex >= 0 &&
+                                                questionsListBox.SelectedIndex < builder.Questions.Count;
 
         private bool IsValidAnswerSelected => IsValidQuestionSelected &&
                                               answersListBox.SelectedIndex >= 0 &&
                                               answersListBox.SelectedIndex < SelectedQuestion.Answers.Count;
 
-        private QuestionBuilder SelectedQuestion => builder.Questions[questionsListbox.SelectedIndex];
+        private QuestionBuilder SelectedQuestion => builder.Questions[questionsListBox.SelectedIndex];
         private Answer SelectedAnswer => SelectedQuestion.Answers[answersListBox.SelectedIndex];
 
         private bool blockQuestionUpdate = false;
@@ -182,34 +199,36 @@ namespace Surveys.Editor
         {
             if (blockQuestionUpdate) return;
 
-            if (IsValidQuestionSelected)
+            var isValidQuestionSelected = IsValidQuestionSelected;
+
+            removeQuestionButton.Enabled = cloneQuestionButton.Enabled = isValidQuestionSelected;
+
+            UpdateMoveButtons();
+
+            questionTextBox.Enabled = isValidQuestionSelected;
+            questionTextBox.Text = isValidQuestionSelected ? SelectedQuestion.Text : @"Выберите вопрос";
+
+            categoryComboBox.Enabled = isValidQuestionSelected;
+
+            blockCategoryUpdate = true;
+            //Without this statement, "SelectedIndex = -1;" will set it to 0, if it not 0 already, and -1 otherwise.
+            if (categoryComboBox.Items.Count > 0)
             {
-                removeQuestionButton.Enabled = true;
-                cloneQuestionButton.Enabled = true;
-
-                questionTextBox.Enabled = true;
-                questionTextBox.Text = SelectedQuestion.Text;
-
-                categoryComboBox.Enabled = true;
-                categoryComboBox.SelectedIndex = SelectedQuestion.Category;
-
-                addAnswerButton.Enabled = true;
-                answersListBox.DataSource = SelectedQuestion.Answers;
+                categoryComboBox.SelectedIndex = 0;
+                categoryComboBox.SelectedIndex = isValidQuestionSelected ? SelectedQuestion.Category : -1;
             }
-            else
-            {
-                removeQuestionButton.Enabled = false;
-                cloneQuestionButton.Enabled = false;
+            blockCategoryUpdate = false;
 
-                questionTextBox.Enabled = false;
-                questionTextBox.Text = @"Выберите вопрос";
+            addAnswerButton.Enabled = isValidQuestionSelected;
+            answersListBox.DataSource = isValidQuestionSelected ? SelectedQuestion.Answers : null;
+        }
 
-                categoryComboBox.Enabled = false;
-                categoryComboBox.SelectedIndex = -1;
-
-                addAnswerButton.Enabled = false;
-                answersListBox.DataSource = null;
-            }
+        private void UpdateMoveButtons()
+        {
+            moveQuestionUpButton.Enabled = IsValidQuestionSelected &&
+                                           questionsListBox.SelectedIndex > 0;
+            moveQuestionDownButton.Enabled = IsValidQuestionSelected &&
+                                             questionsListBox.SelectedIndex < builder.Questions.Count - 1;
         }
 
         private void OnQuestionTextBoxChanged(object sender, EventArgs args)
@@ -224,12 +243,16 @@ namespace Surveys.Editor
         public void RefreshQuestionListBox()
         {
             typeof(ListBox).GetMethod("RefreshItems", BindingFlags.NonPublic | BindingFlags.Instance)
-                .Invoke(questionsListbox, new object[] { });
+                .Invoke(questionsListBox, new object[] { });
         }
+
+        private bool blockCategoryUpdate = false;
 
         private void OnCategoryComboBoxChanged(object sender, EventArgs args)
         {
-            if (!IsValidQuestionSelected || SelectedQuestion.Category == categoryComboBox.SelectedIndex) return;
+            if (blockCategoryUpdate ||
+                !IsValidQuestionSelected ||
+                SelectedQuestion.Category == categoryComboBox.SelectedIndex) return;
             blockQuestionUpdate = true;
             SelectedQuestion.Category = categoryComboBox.SelectedIndex;
             RefreshQuestionListBox();
@@ -242,13 +265,15 @@ namespace Surveys.Editor
         {
             if (blockAnswerUpdate) return;
 
-            removeAnswerButton.Enabled = IsValidAnswerSelected;
+            var isValidAnswerSelected = IsValidAnswerSelected;
 
-            answerDescriptionTextBox.Enabled = IsValidAnswerSelected;
-            answerDescriptionTextBox.Text = IsValidAnswerSelected ? SelectedAnswer.Description : @"Выберите ответ...";
+            removeAnswerButton.Enabled = isValidAnswerSelected;
 
-            pointsForAnswerInput.Enabled = IsValidAnswerSelected;
-            pointsForAnswerInput.Value = IsValidAnswerSelected ? SelectedAnswer.PointsForAnswer : 0;
+            answerDescriptionTextBox.Enabled = isValidAnswerSelected;
+            answerDescriptionTextBox.Text = isValidAnswerSelected ? SelectedAnswer.Description : @"Выберите ответ...";
+
+            pointsForAnswerInput.Enabled = isValidAnswerSelected;
+            pointsForAnswerInput.Value = isValidAnswerSelected ? SelectedAnswer.PointsForAnswer : 0;
         }
 
         private void OnAnswerTextBoxChanged(object sender, EventArgs args)
@@ -277,12 +302,46 @@ namespace Surveys.Editor
             blockAnswerUpdate = false;
         }
 
+        private void MoveSelectedQuestionUp()
+        {
+            if (!IsValidQuestionSelected) return;
+
+            var i = questionsListBox.SelectedIndex;
+            if (i <= 0) return;
+
+            var question = builder.Questions[i];
+            builder.Questions.RemoveAt(i);
+            builder.Questions.Insert(i - 1, question);
+            if (questionsListBox.SelectedIndex != i - 1)
+                questionsListBox.SelectedIndex = i - 1;
+            UpdateMoveButtons();
+        }
+
+        private void MoveSelectedQuestionDown()
+        {
+            if (!IsValidQuestionSelected) return;
+
+            var i = questionsListBox.SelectedIndex;
+            if (i >= builder.Questions.Count - 1) return;
+
+            var question = builder.Questions[i + 1];
+            builder.Questions.RemoveAt(i + 1);
+            builder.Questions.Insert(i, question);
+            UpdateMoveButtons();
+        }
+
         public void UpdateSizes()
         {
-            addQuestionButton.Size = removeQuestionButton.Size = cloneQuestionButton.Size =
-                new Size(tabControl.Width / 3 - (int) (ButtonMargin * 2.5), ButtonHeight);
+            addQuestionButton.Size =
+                removeQuestionButton.Size =
+                    cloneQuestionButton.Size =
+                        moveQuestionUpButton.Size =
+                            moveQuestionDownButton.Size =
+                                new Size(tabControl.Width / 5 - (int) (ButtonMargin * 2.5), ButtonHeight);
             removeQuestionButton.Location = new Point(addQuestionButton.Right + ButtonMargin * 2, ButtonMargin);
             cloneQuestionButton.Location = new Point(removeQuestionButton.Right + ButtonMargin * 2, ButtonMargin);
+            moveQuestionUpButton.Location = new Point(cloneQuestionButton.Right + ButtonMargin * 2, ButtonMargin);
+            moveQuestionDownButton.Location = new Point(moveQuestionUpButton.Right + ButtonMargin * 2, ButtonMargin);
 
             groupBox.Location = new Point(tabControl.Left, tabControl.Bottom - 175);
             groupBox.Size = new Size(tabControl.Size.Width - 8, 175 - 30);
@@ -319,7 +378,7 @@ namespace Surveys.Editor
             questionTextBox.Location = new Point(questionTextLabel.Right + 5, questionTextLabel.Top - 2);
             questionTextBox.Size = new Size(tabControl.Width - questionTextLabel.Right - 17, 30);
 
-            questionsListbox.Size = new Size(tabControl.Width - 15, questionTextBox.Top - 30);
+            questionsListBox.Size = new Size(tabControl.Width - 15, questionTextBox.Top - 40);
         }
     }
 }

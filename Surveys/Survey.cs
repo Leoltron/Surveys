@@ -13,9 +13,9 @@ namespace Surveys
 
         public Survey(string[] categories, Question[] questions, string[] personalDataPoints)
         {
-            Categories = categories;
-            Questions = questions;
-            PersonalDataPoints = personalDataPoints;
+            Categories = categories ?? new string[0];
+            Questions = questions ?? new Question[0];
+            PersonalDataPoints = personalDataPoints ?? new string[0];
             answers = new int[QuestionsAmount];
         }
 

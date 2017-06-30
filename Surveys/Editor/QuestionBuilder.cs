@@ -23,7 +23,7 @@ namespace Surveys
         {
             this.builder = builder;
             Text = question.Text;
-            Answers = new BindingList<Answer>(question.Answers);
+            Answers = new BindingList<Answer>(question.Answers.ToList());
             Category = question.Category;
         }
 
