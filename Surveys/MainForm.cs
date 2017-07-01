@@ -4,10 +4,11 @@ using System.IO;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 using Surveys.Editor;
+using Surveys.Passer;
 
 namespace Surveys
 {
-    class MainForm : Form
+    sealed class MainForm : Form
     {
         private readonly Button createSurveyButton;
         private readonly Button changeSurveyButton;
@@ -15,10 +16,12 @@ namespace Surveys
 
         public MainForm()
         {
-            Text = "Опросник";
+            Text = @"Опросник";
             Icon = new Icon("icon.ico");
 
             MinimumSize = new Size(300, 300);
+            CenterToScreen();
+
             Font = new Font("Tahoma", 20);
             createSurveyButton = new Button
             {

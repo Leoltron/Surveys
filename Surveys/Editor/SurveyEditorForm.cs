@@ -35,6 +35,7 @@ namespace Surveys.Editor
             Icon = new Icon("icon.ico");
             Text = @"Редактор опросов";
             MinimumSize = new Size(700, 400);
+            CenterToScreen();
 
             tabControl = new TabControl {Location = new Point(0, 2)};
 
@@ -67,7 +68,8 @@ namespace Surveys.Editor
             var dialogResult = MessageBox.Show(
                 @"Вы хотите сохранить опрос?",
                 @"Редактор опросов",
-                MessageBoxButtons.YesNoCancel);
+                MessageBoxButtons.YesNoCancel,
+                MessageBoxIcon.Question);
             switch (dialogResult)
             {
                 case DialogResult.Cancel:

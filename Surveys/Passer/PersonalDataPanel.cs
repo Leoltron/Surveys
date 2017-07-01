@@ -2,40 +2,42 @@
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace Surveys
+namespace Surveys.Passer
 {
-    class PersonalDataPanel : Panel
+    sealed class PersonalDataPanel : Panel
     {
-        private Label[] Names;
-        private TextBox[] Values;
+        private readonly Label[] names;
+        private readonly TextBox[] values;
 
         private const int ElementHeight = 20;
         private const int ElementMargin = 20;
 
         public PersonalDataPanel(string[] dataPoints)
         {
-            Names = new Label[dataPoints.Length];
-            Values = new TextBox[dataPoints.Length];
-            for (var i = 0; i < Names.Length; i++)
+            AutoScroll = true;
+
+            names = new Label[dataPoints.Length];
+            values = new TextBox[dataPoints.Length];
+            for (var i = 0; i < names.Length; i++)
             {
-                Names[i] = new Label
+                names[i] = new Label
                 {
                     Text = dataPoints[i],
                     Location = new Point(ElementMargin, (i + 1) * ElementMargin + i * ElementHeight),
                 };
-                Names[i].Size =
+                names[i].Size =
                     new Size(
                         TextRenderer.MeasureText(
                             dataPoints[i],
-                            Names[i].Font,
+                            names[i].Font,
                             new Size(int.MaxValue, int.MaxValue)
                         ).Width,
                         ElementHeight);
 
-                Controls.Add(Names[i]);
+                Controls.Add(names[i]);
 
-                Values[i] = new TextBox {Location = new Point(Names[i].Right + ElementMargin, Names[i].Top - 2)};
-                Controls.Add(Values[i]);
+                values[i] = new TextBox {Location = new Point(names[i].Right + ElementMargin, names[i].Top - 2)};
+                Controls.Add(values[i]);
             }
 
             Resize += (sender, args) => OnResize();
@@ -44,15 +46,15 @@ namespace Surveys
 
         private void OnResize()
         {
-            for (var i = 0; i < Names.Length; i++)
-                Values[i].Size = new Size(Width - Names[i].Right - 100, ElementHeight);
+            for (var i = 0; i < names.Length; i++)
+                values[i].Size = new Size(Width - names[i].Right - 100, ElementHeight);
         }
 
         public Tuple<string, string>[] GetPersonalData()
         {
-            var result = new Tuple<string, string>[Names.Length];
+            var result = new Tuple<string, string>[names.Length];
             for (var i = 0; i < result.Length; i++)
-                result[i] = Tuple.Create(Names[i].Text, Values[i].Text);
+                result[i] = Tuple.Create(names[i].Text, values[i].Text);
             return result;
         }
     }
